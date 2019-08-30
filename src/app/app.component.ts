@@ -20,7 +20,8 @@ export class AppComponent {
 
   initializeApp() {
     this.platform.ready().then(() => {
-      this.statusBar.styleDefault();
+      // Cabmiamos sytleDefault() por styleLightContent():
+      this.statusBar.styleLightContent();
       this.splashScreen.hide();
     });
   }
