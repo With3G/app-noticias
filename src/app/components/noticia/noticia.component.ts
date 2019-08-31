@@ -1,7 +1,8 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { Article } from '../../interfaces/interfaces';
 import { InAppBrowser } from '@ionic-native/in-app-browser/ngx';
-import { ActionSheetController } from '@ionic/angular';
+// Importamos la librería platform:
+import { ActionSheetController, Platform } from '@ionic/angular';
 import { SocialSharing } from '@ionic-native/social-sharing/ngx';
 import { DataLocalService } from '../../services/data-local.service';
 @Component({
@@ -14,7 +15,11 @@ export class NoticiaComponent implements OnInit {
   @Input() i: number;
   @Input() enFavoritos;
 
-  constructor(private iab: InAppBrowser, private actionSheetController: ActionSheetController, private socialSharing: SocialSharing, private dataLocalService: DataLocalService) { }
+  constructor(private iab: InAppBrowser, 
+              private actionSheetController: ActionSheetController, 
+              private socialSharing: SocialSharing, 
+              private dataLocalService: DataLocalService,
+              private platform: Platform ) { } // Creamos el objeto platform.
 
   ngOnInit() {}
 
@@ -23,9 +28,7 @@ export class NoticiaComponent implements OnInit {
   }
 
   async lanzarMenu(){
-    // Ahora creamos una variable que contendrá el botón de favoritos según página:
     let guardarBorrarBtn;
-    // Comprobamos si estamos en favoritos:
     if(this.enFavoritos){
       guardarBorrarBtn = {
         text: 'Borrar Favorito',
@@ -53,14 +56,11 @@ export class NoticiaComponent implements OnInit {
         icon: 'share',
         cssClass: 'action-dark',
         handler: () => { 
-          this.socialSharing.share(
-            this.noticia.title, 
-            this.noticia.source.name, 
-            '',
-            this.noticia.url 
-          );
+          // Ahora llamamos nuestro nuevo método en lugar de ejecutar el share directamente:
+          this.compartirNoticia();
+          
         }
-      }, // cargamos aquí el botón de favoritos:
+      }, 
       guardarBorrarBtn,
       {
         text: 'Cancelar',
@@ -75,6 +75,32 @@ export class NoticiaComponent implements OnInit {
     });
 
     await actionSheet.present();
+  }
+
+  // Creamos un método para compartir noticia:
+  compartirNoticia(){
+    // Comprobamos la plataforma:
+    if(this.platform.is('cordova')){ // Si es cordova ejecutamos el share de cordova.
+      this.socialSharing.share(
+        this.noticia.title, 
+        this.noticia.source.name, 
+        '',
+        this.noticia.url 
+      );
+    }else{ // Si es un navegador utilizaremos el web API:
+      if(navigator['share']){
+        navigator['share']({
+          title: this.noticia.title,
+          text: this.noticia.description,
+          url: this.noticia.url
+        })
+        .then(()=> console.log('Compartido correctamente'))
+        .catch((error)=> console.log('Error al compartir', error));
+      }else { // Si el navegador no soporta la opción de compartir lanzamos un mensaje:
+        console.log('El navegador no soporta la opción compartir');
+      }
+    }
+    
   }
 
 }
